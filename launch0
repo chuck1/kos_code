@@ -1,0 +1,91 @@
+
+function semimajor_axis_from_radius_extrema {
+	declare parameter r_e.
+	
+	set t to SHIP:VELOCITY:NORMALIZED.
+	
+	set r_1_vec to -SHIP:BODY:POSITION.
+	set r_1_hat to r_1_vec:NORMALIZED.
+	set r_1 to r_1_vec:MAG.
+	
+	set r_2_hat to r_1_hat - 2.0 * t * VDOT(t,r_1_hat).
+	
+	set f to (1.0 + VDOT(r_1_hat,r_2_hat)) / 2.0.
+	
+	set r_2 to r_e * (r_e - r_1) / (r_e - f * r_1 ).
+
+	set a to (r_1 + r_2) / 2.0.
+
+	return a.
+}
+function speed_from_radius_extrema {
+	declare parameter r_e.
+	set a to semimajor_axis_from_radius_extrema(r_e).
+	set r to SHIP:BODY:POSITION:MAG.
+	
+	set v to sqrt(SHIP:BODY:MU * (2.0/r - 1.0/a)).
+
+	return v.
+}
+
+
+clearscreen.
+set thrott to 1.0.
+lock throttle to thrott.
+lock steering to HEADING(90,90).
+
+stage.
+
+wait 0.1.
+
+WHEN MAXTHRUST = 0 THEN {
+	UNTIL MAXTHRUST > 0 { 
+		STAGE.
+		WAIT 0.5.
+	}
+}.
+
+SET G TO KERBIN:MU / KERBIN:RADIUS^2.
+lock accvec to SHIP:SENSORS:ACC - SHIP:SENSORS:GRAV.
+lock gs to ACCvec:MAG / G.
+lock dthrott to 0.05 * (2.0 - gs).
+
+set alt0 to 2000.
+set alt1 to 50000.
+
+until ALTITUDE > alt0 {	
+	set thrott to thrott + dthrott.
+	wait 0.1.
+}
+
+lock x to (ALTITUDE-alt0)/(alt1-alt0).
+lock pitch TO 90 * (1 - x)^2.
+lock steering to HEADING(90,pitch).
+
+WHEN ALTITUDE > alt1 THEN {
+	lock STEERING to HEADING(90,0).
+}
+
+until ALTITUDE > 15000 {
+	set thrott to thrott + dthrott.
+	wait 0.1.
+	clearscreen.
+	print "ALT "+ALTITUDE.
+}
+
+//lock throttle to 1.0.
+
+until apoapsis > 80000 {
+	clearscreen.
+	print "ALT "+ALTITUDE.
+	print "APO "+apoapsis.
+	wait 0.1.
+}
+
+lock throttle to 0.0.
+
+until ETA:APOAPSIS < 30 {
+	wait 0.1.
+}
+
+

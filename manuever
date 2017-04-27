@@ -1,30 +1,3 @@
 
-function semimajor_axis_from_radius_extrema {
-	declare parameter r_e.
-	
-	set t to SHIP:VELOCITY:NORMALIZED.
-	
-	set r_1_vec to -SHIP:BODY:POSITION.
-	set r_1_hat to r_1_vec:NORMALIZED.
-	set r_1 to r_1_vec:MAG.
-	
-	set r_2_hat to r_1_hat - 2.0 * t * VDOT(t,r_1_hat).
-	
-	set f to (1.0 + VDOT(r_1_hat,r_2_hat)) / 2.0.
-	
-	set r_2 to r_e * (r_e - r_1) / (r_e - f * r_1 ).
 
-	set a to (r_1 + r_2) / 2.0.
-
-	return a.
-}
-function speed_from_radius_extrema {
-	declare parameter r_e.
-	set a to semimajor_axis_from_radius_extrema(r_e).
-	set r to SHIP:BODY:POSITION:MAG.
-	
-	set v to sqrt(SHIP:BODY:MU * (2.0/r - 1.0/a)).
-
-	return v.
-}
 
