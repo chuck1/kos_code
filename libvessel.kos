@@ -1,0 +1,11 @@
+// library for getting information about a vessel
+
+FUNCTION vessel_surface_prograde {
+	DECLARE PARAMETER ves.
+	SET r TO -ves:BODY:POSITION:NORMALIZED.
+	RETURN (ves:VELOCITY - VDOT(ves:VELOCITY, r) * r):NORMALIZED.
+}
+FUNCTION ship_max_acc {
+	RETURN SHIP:MAXTHRUST / SHIP:MASS.
+}
+

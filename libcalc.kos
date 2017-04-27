@@ -1,0 +1,67 @@
+@LAZYGLOBAL OFF.
+
+function calc_pitch {
+	return 90 - VANG(-SHIP:BODY:POSITION:NORMALIZED,SHIP:VELOCITY:NORMALIZED).
+}
+function func_r_2 {
+	DECLARE PARAMETER r_e, r_1, f.
+	
+	return r_e * (r_e - r_1) / (r_e - f * r_1 ).
+}
+function func_a {
+	DECLARE PARAMETER r_e.
+	
+	SET t to SHIP:VELOCITY:NORMALIZED.
+	
+	SET r_1_vec to -SHIP:BODY:POSITION.
+	SET r_1_hat to r_1_vec:NORMALIZED.
+	SET r_1 to r_1_vec:MAG.
+	
+	SET r_2_hat to r_1_hat - 2.0 * t * VDOT(t,r_1_hat).
+	
+	SET f to (1.0 + VDOT(r_1_hat,r_2_hat)) / 2.0.
+	
+	SET r_2 to func_r_2(r_e, r_1, f).
+
+	SET a to (r_1 + r_2) / 2.0.
+
+	return a.
+}
+function func_v {
+	DECLARE PARAMETER r_e.
+	
+	SET a to func_a(r_e).
+	SET r to SHIP:BODY:POSITION:MAG.
+	
+	SET v to sqrt(SHIP:BODY:MU * (2.0/r - 1.0/a)).
+
+	return v.
+}
+function func_apo {
+	DECLARE PARAMETER alt.
+
+	SET a to 1.0.
+	
+	SET r0 to SHIP:BODY:RADIUS + 1000.
+	
+	SET r1 to SHIP:BODY:RADIUS + alt + 1000.
+
+	SET t to 90 - calc_pitch().
+        set x to t / 90.
+        set y to (1 - CONSTANT:E ^ (-a * x)) / (1 - CONSTANT:E ^ (-a)).
+        return r0 + (r1 - r0) * y.
+}
+function calc_v_circular {
+	DECLARE PARAMETER alt.
+	SET r to SHIP:BODY:RADIUS + alt.
+	return sqrt(SHIP:BODY:MU / r).
+}
+function calc_v_at_alt {
+	DECLARE PARAMETER alt.
+	SET r to SHIP:BODY:RADIUS + alt.
+	SET a to SHIP:OBT:SEMIMAJORAXIS.
+	return sqrt(SHIP:BODY:MU * (2.0/r - 1.0/a)).
+}
+
+
+

@@ -1,0 +1,78 @@
+RUNONCEPATH("libcalc.kos").
+RUNONCEPATH("libvessel.kos").
+
+FUNCTION circularize_apo {
+	LOCK THROTTLE TO 0.0.
+	LOCK STEERING TO vessel_surface_prograde(SHIP).
+	
+	SET v_target TO calc_v_circular(APOAPSIS).
+	
+	SET dv TO v_target - calc_v_at_alt(APOAPSIS).
+	
+	LOCK burn_duration TO dv / ship_max_acc()
+	
+	UNTIL ETA:APOAPSIS < (burn_time / 2) {
+		wait 0.1.
+		clearscreen.
+		print "CIRCULARIZATION BURN".
+		print "WAITING".
+		print "DV " + dv.
+		print "DT " + burn_duration.
+	}
+
+	LOCK dv TO v_target - SHIP:VELOCITY:MAG.
+	
+	LOCK THROTTLE TO 1.0.
+
+	UNTIL SHIP:VELOCITY:MAG > v_target {
+		WAIT 0.1.
+		CLEARSCREEN.
+		PRINT "CIRCULARIZATION BURN".
+		PRINT "EXECUTING".
+		PRINT "DV " + dv.
+		PRINT "DT " + burn_duration.
+	}
+	
+	PRINT "CIRCULARIZATION BURN".
+	PRINT "EXECUTING".
+}
+FUNCTION descend {
+	
+	LOCK STEERING TO SHIP:SRFRETROGRADE.
+	
+	LOCK d TO VDOT(SHIP:VELOCITY:SURFACE:NORMALIZED,-SHIP:BODY:POSITION:NORMALIZED).
+	
+	LOCK a_y TO ship_max_acc() * -d.
+	
+	LOCK v_y TO SHIP:VELOCITY:SURFACE:MAG * d.
+	
+	LOCK g TO -SHIP:BODY:MU / (ALTITUDE + SHIP:BODY:RADIUS)^2.
+	
+	LOCK burn_duration TO -v_y / a_y.
+
+	LOCK t_impact TO (-v_y - sqrt(v_y^2 - 2 * g * ALT:RADAR)) / g.
+	
+	WAIT UNTIL v_y < 0.
+	
+	UNTIL t_burn > t_impact {
+		WAIT 0.1.
+		CLEARSCREEN.
+		PRINT "WAITING".
+		PRINT "t burn  " + t_burn.
+		PRINT "t impact" + t_impact.
+	}
+
+	LOCK THROTTLE TO 1.0.
+	
+	UNTIL v_y > -3 {
+		WAIT 0.1.
+		CLEARSCREEN.
+		PRINT "BURNING".
+		PRINT "t burn  " + t_burn.
+		PRINT "t impact" + t_impact.
+	}
+}
+
+
+
+
