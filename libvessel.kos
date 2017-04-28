@@ -1,11 +1,17 @@
+@LAZYGLOBAL OFF.
 // library for getting information about a vessel
 
 FUNCTION vessel_surface_prograde {
 	DECLARE PARAMETER ves.
-	SET r TO -ves:BODY:POSITION:NORMALIZED.
-	RETURN (ves:VELOCITY - VDOT(ves:VELOCITY, r) * r):NORMALIZED.
+	DECLARE LOCAL r TO -ves:BODY:POSITION:NORMALIZED.
+	DECLARE LOCAL v TO ves:VELOCITY:ORBIT.
+	SET v TO v - (VDOT(v, r) * r).
+	RETURN v:NORMALIZED.
 }
 FUNCTION ship_max_acc {
 	RETURN SHIP:MAXTHRUST / SHIP:MASS.
+}
+function ship_pitch {
+	return 90 - VANG(-SHIP:BODY:POSITION:NORMALIZED,SHIP:FACING:FOREVECTOR).
 }
 

@@ -1,20 +1,20 @@
 @LAZYGLOBAL OFF.
 
-RUNONCEPATH("libmaneuver.kos")
-RUNONCEPATH("libcalc.kos")
+RUNONCEPATH("libmaneuver.kos").
+RUNONCEPATH("libcalc.kos").
 
 FUNCTION launch {
 	DECLARE PARAMETER alt0, alt1, pitch0.
 
 	LOCK ship_max_acc TO SHIP:MAXTHRUST / SHIP:MASS.
 	
-	SET g_target TO 2.
+	DECLARE LOCAL g_target IS 2.
 	
 	/////////////////////////////////////////////////////////
 	// launch vertical with target acceleration of 2 G until
 	// we reach an altitude of alt0
 	
-	SET thrott TO 1.
+	DECLARE LOCAL thrott IS 1.
 	LOCK THROTTLE TO thrott.
 	LOCK STEERING TO HEADING(90,90).
 	
@@ -28,14 +28,23 @@ FUNCTION launch {
 		}
 	}.
 	
-	SET acc_surf TO SHIP:BODY:MU / SHIP:BODY:RADIUS^2.
+	DECLARE LOCAL acc_surf IS SHIP:BODY:MU / SHIP:BODY:RADIUS^2.
 	LOCK accvec TO SHIP:SENSORS:ACC - SHIP:SENSORS:GRAV.
 	LOCK g TO accvec:MAG / acc_surf.
 	LOCK dthrott TO 0.05 * (g_target - g).
 	
+	DECLARE LOCAL pid0 IS PIDLOOP(1,0.1,0.0,0,1).
+	
+	SET pid0:SETPOINT TO g_target.
+	
 	UNTIL ALTITUDE > alt0 {	
-		SET thrott TO thrott + dthrott.
+		SET thrott TO pid0:UPDATE(TIME:SECONDS, g).
+		
 		WAIT 0.1.
+		CLEARSCREEN.
+		PRINT "ALT     " + ALTITUDE.
+		PRINT "PITCH   " + ship_pitch().
+		PRINT "VPITCH  " + SHIP:VELOCITY:SURFACE:DIRECTION:PITCH.
 	}
 	
 	/////////////////////////////////////////////////////////
@@ -47,31 +56,38 @@ FUNCTION launch {
 	//
 	// Calculate target speed based on target pitch-apoapsis relation.
 	
-	LOCK apo_target TO func_apo(alt1).
+	LOCK apo_target TO func_apo(alt0, alt1).
 	LOCK v_target TO func_v(apo_target).
-	LOCK dthrott TO 1.0 * (v_target - SHIP:VELOCITY:MAG).
+	//LOCK dthrott TO 0.001 * (v_target - SHIP:VELOCITY:ORBIT:MAG).
+	
+	DECLARE LOCAL pid TO PIDLOOP(0.1,0,0,0,1).
 	
 	LOCK STEERING TO HEADING(90,pitch0).
 	
-	WHEN calc_pitch() < pitch0 THEN {
-		LOCK STEERING TO SHIP:SRFPROGRADE.
+	WAIT 4.
 	
-		WHEN ALTITUDE > (alt1 / 2) THEN {
+	WHEN ship_pitch() < pitch0 THEN {
+		LOCK STEERING TO SHIP:SRFPROGRADE.
+		
+		WHEN ALTITUDE > (alt1 * 2 / 3) THEN {
 			LOCK STEERING TO SHIP:PROGRADE.
 		}
 	}
 	
 	UNTIL APOAPSIS > alt1 {
-		SET thrott TO thrott + dthrott.
+		SET pid:SETPOINT TO v_target.
+		SET thrott TO pid:UPDATE(TIME:SECONDS, SHIP:VELOCITY:ORBIT:MAG).
 		
 		WAIT 0.1.
 		CLEARSCREEN.
-		PRINT "ALT     " + ALTITUDE.
-		PRINT "PITCH   " + calc_pitch().
-		PRINT "APO     " + APOAPSIS.
-		PRINT "APO TAR " + apo_target - SHIP:BODY:RADIUS.
-		PRINT "V       " + SHIP:VELOCITY:MAG.
-		PRINT "V TAR   " + v_target.
+		PRINT "ALT       " + ALTITUDE.
+		PRINT "PITCH     " + ship_pitch().
+		PRINT "THROTTLE  " + THROTTLE.
+		PRINT "APO       " + APOAPSIS.
+		PRINT "APO TAR   " + (apo_target - SHIP:BODY:RADIUS).
+		PRINT "V         " + SHIP:VELOCITY:ORBIT:MAG.
+		PRINT "V TAR     " + v_target.
+		PRINT "VEL ANGLE " + VANG(SHIP:VELOCITY:ORBIT:MAG,SHIP:VELOCITY:SURFACE:MAG).
 	}
 	
 	//////////////////////////////////////////////////////////

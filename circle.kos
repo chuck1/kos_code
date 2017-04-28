@@ -1,0 +1,14 @@
+@LAZYGLOBAL OFF.
+
+CLEARSCREEN.
+
+SWITCH TO 0.
+
+RUNONCEPATH("libmaneuver.kos").
+
+circularize_apo().
+
+SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+
+
+

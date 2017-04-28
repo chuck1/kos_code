@@ -1,13 +1,15 @@
 @LAZYGLOBAL OFF.
 
+CLEARSCREEN.
+
 SWITCH TO 0.
 
 RUNONCEPATH("liblaunch.kos").
 
 // parameters
-SET alt0 TO 2000.
-SET alt1 TO SHIP:BODY:ATM:HEIGHT + 1000.
-SET pitch0 TO 85.
+DECLARE LOCAL alt0 IS 500.
+DECLARE LOCAL alt1 IS SHIP:BODY:ATM:HEIGHT + 1000.
+DECLARE LOCAL pitch0 IS 80.
 
 launch(alt0, alt1, pitch0).
 

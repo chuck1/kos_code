@@ -9,28 +9,29 @@ FUNCTION circularize_apo {
 	
 	SET dv TO v_target - calc_v_at_alt(APOAPSIS).
 	
-	LOCK burn_duration TO dv / ship_max_acc()
+	LOCK t_burn TO dv / ship_max_acc().
 	
-	UNTIL ETA:APOAPSIS < (burn_time / 2) {
+	UNTIL ETA:APOAPSIS < (t_burn / 2) {
 		wait 0.1.
 		clearscreen.
 		print "CIRCULARIZATION BURN".
 		print "WAITING".
-		print "DV " + dv.
-		print "DT " + burn_duration.
+		print "DV      " + dv.
+		print "DT      " + t_burn.
+		PRINT "ETA APO " + ETA:APOAPSIS.
 	}
 
-	LOCK dv TO v_target - SHIP:VELOCITY:MAG.
+	LOCK dv TO v_target - SHIP:VELOCITY:ORBIT:MAG.
 	
 	LOCK THROTTLE TO 1.0.
 
-	UNTIL SHIP:VELOCITY:MAG > v_target {
+	UNTIL SHIP:VELOCITY:ORBIT:MAG > v_target {
 		WAIT 0.1.
 		CLEARSCREEN.
 		PRINT "CIRCULARIZATION BURN".
 		PRINT "EXECUTING".
 		PRINT "DV " + dv.
-		PRINT "DT " + burn_duration.
+		PRINT "DT " + t_burn.
 	}
 	
 	PRINT "CIRCULARIZATION BURN".
