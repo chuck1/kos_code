@@ -1,19 +1,109 @@
+CLEARSCREEN.
+CLEARVECDRAWS().
 
+SAS OFF.
+
+SET pid_altitude TO PIDLOOP(1.0,0,10.0,-10,10).
+SET pid_speed TO PIDLOOP(1.0,0,2.0,0,1).
+
+FUNCTION heading_dir {
+	SET f TO SHIP:FACING:FOREVECTOR:NORMALIZED.
+	SET h TO (f - VDOT(f,UP:FOREVECTOR) * UP:FOREVECTOR).
+	RETURN LOOKDIRUP(h,UP:FOREVECTOR).
+}
+FUNCTION project_plane {
+	DECLARE PARAMETER v,n.
+	RETURN v - VDOT(v,n) * n.
+}
+
+FUNCTION arc_to_lng {
+	DECLARE PARAMETER l, lat.
+	RETURN l / (CONSTANT:DEGTORAD * SHIP:BODY:RADIUS * COS(lat)).
+}
+
+// KSC runway
+// lat  -0.04852
+// lng -74.72433
+// heading 90
+
+set ksc_runway_west TO latlng( -0.04852,-74.72433).
+
+// stacks
+
+set stack_alt TO stack().
+stack_alt:push(ksc_runway_west:TERRAINHEIGHT).
+stack_alt:push(ksc_runway_west:TERRAINHEIGHT+10).
+stack_alt:push(ksc_runway_west:TERRAINHEIGHT+300).
+stack_alt:push(ksc_runway_west:TERRAINHEIGHT+800).
+
+set stack_speed TO stack().
+stack_speed:push(0).
+stack_speed:push(40).
+stack_speed:push(40).
+stack_speed:push(80).
+
+set stack_geo TO stack().
+stack_geo:push(latlng(ksc_runway_west:lat,ksc_runway_west:lng + arc_to_lng(4000,0))).
+stack_geo:push(ksc_runway_west).
+stack_geo:push(latlng(ksc_runway_west:lat,ksc_runway_west:lng - arc_to_lng(4000,0))).
+stack_geo:push(latlng(ksc_runway_west:lat,ksc_runway_west:lng - arc_to_lng(8000,0))).
+
+// inital
+
+SET steer0 TO SHIP:FACING.
+
+// conditions for changing target values
+
+SET dist TO 0.
+
+WHEN dist < 500 THEN {
+	SET spot to stack_geo:POP().
+	
+	SET pid_altitude:SETPOINT TO stack_alt:POP().
+	
+	SET pid_speed:SETPOINT TO stack_speed:POP().
+	
+	LOCK dist TO spot:ALTITUDEPOSITION(pid_altitude:SETPOINT):MAG.
+	
+	LOCK steer0 TO LOOKDIRUP(project_plane(spot:POSITION,UP:FOREVECTOR),UP:FOREVECTOR).
+	
+	IF NOT stack_alt:EMPTY {
+		PRESERVE.
+	}
+}
+
+// preloop
+
+SET steer to steer0.
+LOCK STEERING TO steer.
+SET thrott to 0.
+LOCK THROTTLE TO thrott.
+
+// loop
 
 UNTIL FALSE {
 	WAIT 0.1.
 	CLEARSCREEN.
-	PRINT SHIP:FACING:PITCH.
-	PRINT SHIP:FACING:YAW.
-	PRINT SHIP:FACING:ROLL.
+	
+	SET pitch TO pid_altitude:UPDATE(TIME:SECONDS,ALTITUDE).
+	
+	SET thrott TO pid_speed:UPDATE(TIME:SECONDS,SHIP:VELOCITY:SURFACE:MAG).
+	
+	SET steer TO ANGLEAXIS(-pitch,steer:STARVECTOR) * steer0.
+	
+	PRINT "plane".
+	PRINT "lat     "+SHIP:GEOPOSITION:LAT.
+	PRINT "lng     "+SHIP:GEOPOSITION:LNG.
+	print "distnce "+dist.
+	
 	SET fv TO SHIP:FACING:FOREVECTOR.
-	SET hv TO (fv - VDOT(fv,SHIP:BODY:POSITION:NORMALIZED)*SHIP:BODY:POSITION:NORMALIZED):NORMALIZED.
-	SET dc TO VDOT(VCRS(hv,NORTH:VECTOR),SHIP:BODY:POSITION:NORMALIZED).
-	PRINT dc.
-	PRINT dc/abs(dc).
-	PRINT VDOT(hv,NORTH:VECTOR).
-	PRINT VDOT(hv,NORTH:VECTOR)*dc/abs(dc).
-	PRINT ARCCOS(VDOT(hv,NORTH:VECTOR)*dc/abs(dc)).
+	
+	SET r TO SHIP:BODY:POSITION:NORMALIZED.
+	
+	SET hv TO (fv - VDOT(fv,r) * r:NORMALIZED):NORMALIZED.
+	
+	SET pv TO VCRS(r,hv):NORMALIZED.
+	
 }
 
 
