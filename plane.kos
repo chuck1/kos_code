@@ -2,6 +2,8 @@ CLEARSCREEN.
 CLEARVECDRAWS().
 
 SAS OFF.
+GEAR ON.
+BRAKES ON.
 
 SET pid_altitude TO PIDLOOP(1.0,0,10.0,-10,10).
 SET pid_speed TO PIDLOOP(1.0,0,2.0,0,1).
@@ -33,20 +35,31 @@ set ksc_runway_west TO latlng( -0.04852,-74.72433).
 set stack_alt TO stack().
 stack_alt:push(ksc_runway_west:TERRAINHEIGHT).
 stack_alt:push(ksc_runway_west:TERRAINHEIGHT+10).
+stack_alt:push(ksc_runway_west:TERRAINHEIGHT+100).
 stack_alt:push(ksc_runway_west:TERRAINHEIGHT+300).
 stack_alt:push(ksc_runway_west:TERRAINHEIGHT+800).
 
 set stack_speed TO stack().
 stack_speed:push(0).
-stack_speed:push(40).
-stack_speed:push(40).
+stack_speed:push(50).
+stack_speed:push(50).
+stack_speed:push(50).
 stack_speed:push(80).
 
 set stack_geo TO stack().
 stack_geo:push(latlng(ksc_runway_west:lat,ksc_runway_west:lng + arc_to_lng(4000,0))).
 stack_geo:push(ksc_runway_west).
+stack_geo:push(latlng(ksc_runway_west:lat,ksc_runway_west:lng - arc_to_lng(2000,0))).
 stack_geo:push(latlng(ksc_runway_west:lat,ksc_runway_west:lng - arc_to_lng(4000,0))).
 stack_geo:push(latlng(ksc_runway_west:lat,ksc_runway_west:lng - arc_to_lng(8000,0))).
+
+set stack_dist TO stack().
+
+stack_dist:push(10).
+stack_dist:push(200).
+stack_dist:push(500).
+stack_dist:push(1000).
+stack_dist:push(1).
 
 // inital
 
@@ -56,7 +69,7 @@ SET steer0 TO SHIP:FACING.
 
 SET dist TO 0.
 
-WHEN dist < 500 THEN {
+WHEN dist < stack_dist:PEEK() THEN {
 	SET spot to stack_geo:POP().
 	
 	SET pid_altitude:SETPOINT TO stack_alt:POP().
@@ -66,6 +79,8 @@ WHEN dist < 500 THEN {
 	LOCK dist TO spot:ALTITUDEPOSITION(pid_altitude:SETPOINT):MAG.
 	
 	LOCK steer0 TO LOOKDIRUP(project_plane(spot:POSITION,UP:FOREVECTOR),UP:FOREVECTOR).
+	
+	stack_dist:POP().
 	
 	IF NOT stack_alt:EMPTY {
 		PRESERVE.
@@ -92,9 +107,9 @@ UNTIL FALSE {
 	SET steer TO ANGLEAXIS(-pitch,steer:STARVECTOR) * steer0.
 	
 	PRINT "plane".
-	PRINT "lat     "+SHIP:GEOPOSITION:LAT.
-	PRINT "lng     "+SHIP:GEOPOSITION:LNG.
-	print "distnce "+dist.
+	print "distnce         "+dist.
+	print "target speed    "+pid_speed:SETPOINT.
+	print "target altitude "+pid_altitude:SETPOINT.
 	
 	SET fv TO SHIP:FACING:FOREVECTOR.
 	
