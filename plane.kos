@@ -8,6 +8,16 @@ BRAKES ON.
 SET pid_altitude TO PIDLOOP(1.0,0,10.0,-10,10).
 SET pid_speed TO PIDLOOP(1.0,0,2.0,0,1).
 
+FUNCTION runway_approach_direction {
+	DECLARE PARAMETER runway_geo, runway_vector.
+	set p to project_plane(runway_geo:POSITION,,UP:FOREVECTOR).
+	set p_perp to project_plane(p,runway_vector).
+	set p_para to p - p_perp.
+	set a to VANG(p,runway_vector).
+	set a to MIN(a * 5,90).
+	set d TO p_perp:NORMALIZED * sin(a) + p_para:NORMALIZED * cos(a).
+	return LOOKDIRUP(d,UP:VECTOR).
+}
 FUNCTION heading_dir {
 	SET f TO SHIP:FACING:FOREVECTOR:NORMALIZED.
 	SET h TO (f - VDOT(f,UP:FOREVECTOR) * UP:FOREVECTOR).
