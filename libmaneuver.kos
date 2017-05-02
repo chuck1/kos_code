@@ -73,6 +73,9 @@ FUNCTION descend {
 		PRINT "t impact" + t_impact.
 	}
 }
+FUNCTION match_inclination {
+	DECLARE PARAMETER o.
+}
 
 
 

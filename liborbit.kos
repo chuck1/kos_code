@@ -1,0 +1,5 @@
+
+FUNCTION orbit_ascending_node_vector {
+AngoNGLEAXIS() solarprimevector
+}
+

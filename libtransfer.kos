@@ -1,0 +1,9 @@
+
+FUNCTION transfer {
+	DECLARE PARAMETER o.
+	
+	match_inclination(o).
+
+	
+}
+
