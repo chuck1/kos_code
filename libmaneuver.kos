@@ -1,41 +1,102 @@
 RUNONCEPATH("libcalc.kos").
 RUNONCEPATH("libvessel.kos").
 
+function burn_prograde_at {
+	DECLARE PARAMETER t, dv, v_final.
+	
+	if dv < 0 {
+		LOCK STEERING TO SHIP:RETROGRADE.
+		LOCK dv_remain TO SHIP:VELOCITY:ORBIT:MAG - v_final.
+		SET dv TO -dv.
+	} else {
+		LOCK STEERING TO SHIP:PROGRADE.
+		LOCK dv_remain TO v_final - SHIP:VELOCITY:ORBIT:MAG.
+	}
+	
+	LOCK t_burn TO dv / ship_max_acc().
+	
+	KUNIVERSE:TIMEWARP:WARPTO(t - t_burn / 2 - 15).
+	
+	WAIT 1.
+	
+	UNTIL KUNIVERSE:TIMEWARP:RATE = 1 {
+		WAIT 0.1.
+		CLEARSCREEN.
+		PRINT "v final   " + v_final.
+		PRINT "dv        " + dv.
+		PRINT "dv_remain " + dv_remain.
+	}
+	
+	WAIT 15.
+	
+	LOCK THROTTLE TO 0.1.
+	
+	UNTIL dv_remain < 0 {
+		WAIT 0.1.
+		CLEARSCREEN.
+		PRINT "dv        " + dv.
+		PRINT "dv_remain " + dv_remain.
+	}
+	
+	LOCK THROTTLE TO 0.
+}
 FUNCTION circularize_apo {
 	LOCK THROTTLE TO 0.0.
 	LOCK STEERING TO vessel_surface_prograde(SHIP).
 	
 	SET v_target TO calc_v_circular(APOAPSIS).
 	
-	SET dv TO v_target - calc_v_at_alt(APOAPSIS).
+	DECLARE LOCAL dv TO v_target - calc_v_at_alt(APOAPSIS).
 	
-	LOCK t_burn TO dv / ship_max_acc().
+	burn_prograde_at(TIME:SECONDS + ETA:APOAPSIS, dv, v_target).
+}
+FUNCTION circularize {
+	DECLARE PARAMETER alt.
 	
-	UNTIL ETA:APOAPSIS < (t_burn / 2) {
-		wait 0.1.
-		clearscreen.
-		print "CIRCULARIZATION BURN".
-		print "WAITING".
-		print "DV      " + dv.
-		print "DT      " + t_burn.
-		PRINT "ETA APO " + ETA:APOAPSIS.
+	if PERIAPSIS > alt {
+		adjust_at_apo(alt).
+		adjust_at_per(alt).
+	} else {
+		adjust_at_per(alt).
+		adjust_at_apo(alt).
 	}
-
-	LOCK dv TO v_target - SHIP:VELOCITY:ORBIT:MAG.
+}
+FUNCTION adjust_at_apo {
+	DECLARE PARAMETER per.
 	
-	LOCK THROTTLE TO 1.0.
-
-	UNTIL SHIP:VELOCITY:ORBIT:MAG > v_target {
-		WAIT 0.1.
-		CLEARSCREEN.
-		PRINT "CIRCULARIZATION BURN".
-		PRINT "EXECUTING".
-		PRINT "DV " + dv.
-		PRINT "DT " + t_burn.
-	}
+	DECLARE LOCAL r_apo TO APOAPSIS + SHIP:BODY:RADIUS.
+	DECLARE LOCAL r_per TO per + SHIP:BODY:RADIUS.
 	
-	PRINT "CIRCULARIZATION BURN".
-	PRINT "EXECUTING".
+	DECLARE LOCAL v_apo_1 TO sqrt(SHIP:BODY:MU * (2 / r_apo - 1 / SHIP:OBT:SEMIMAJORAXIS)).
+	
+	DECLARE LOCAL a2 TO (r_apo + r_per) / 2.
+	
+	DECLARE LOCAL v_apo_2 TO sqrt(SHIP:BODY:MU * (2 / r_apo - 1 / a2)).
+	
+	print v_apo_1.
+	print v_apo_2.
+	
+	DECLARE LOCAL dv1 TO v_apo_2 - v_apo_1.
+	
+	print dv1.
+	
+	burn_prograde_at(TIME:SECONDS + ETA:APOAPSIS, dv1, v_apo_2).
+}
+FUNCTION adjust_at_per {
+	DECLARE PARAMETER apo.
+	
+	DECLARE LOCAL r_per TO PERIAPSIS + SHIP:BODY:RADIUS.
+	DECLARE LOCAL r_apo TO apo + SHIP:BODY:RADIUS.
+	
+	DECLARE LOCAL v_per_1 TO sqrt(SHIP:BODY:MU * (2 / r_per - 1 / SHIP:OBT:SEMIMAJORAXIS)).
+	
+	DECLARE LOCAL a2 TO (r_apo + r_per) / 2.
+	
+	DECLARE LOCAL v_per_2 TO sqrt(SHIP:BODY:MU * (2 / r_per - 1 / a2)).
+	
+	DECLARE LOCAL delta_v TO v_per_2 - v_per_1.
+	
+	burn_prograde_at(TIME:SECONDS + ETA:PERIAPSIS, delta_v, v_per_2).
 }
 FUNCTION descend {
 	
@@ -76,6 +137,96 @@ FUNCTION descend {
 FUNCTION match_inclination {
 	DECLARE PARAMETER o.
 }
+
+FUNCTION ship_antinormal {
+	return VCRS(-SHIP:PROGRADE:FOREVECTOR, SHIP:UP:FOREVECTOR):DIRECTION.
+}
+
+FUNCTION time_form_true_anomaly {
+	// only works for circular
+	DECLARE PARAMETER f.
+	
+	DECLARE LOCAL delta_f TO f - SHIP:OBT:TRUEANOMALY.
+	
+	SET delta_f TO MOD(delta_f, 360).
+	
+	if delta_f < 0 {
+		SET delta_f TO delta_f + 360.
+	}
+	
+	DECLARE LOCAL delta_t TO delta_f / 360 * SHIP:OBT:PERIOD.
+	
+	return TIME:SECONDS + delta_t.
+}
+FUNCTION inclination_delta_v {
+	DECLARE PARAMETER i.
+	return 2 * SHIP:VELOCITY:ORBIT:MAG * SIN(i / 2).
+}
+
+FUNCTION adjust_inc {
+	LOCK a TO MOD(SHIP:OBT:ARGUMENTOFPERIAPSIS + SHIP:OBT:TRUEANOMALY, 360).
+
+	DECLARE LOCAL t TO time_form_true_anomaly(-SHIP:OBT:ARGUMENTOFPERIAPSIS).
+
+	//PRINT "TIME    " + TIME:SECONDS.
+	//PRINT "WARP TO " + t.
+
+	DECLARE LOCAL dir to ship_antinormal().
+
+	LOCK STEERING TO dir.
+
+	WAIT 10.
+
+	DECLARE LOCAL dv TO inclination_delta_v(SHIP:OBT:INCLINATION).
+	DECLARE LOCAL dt_burn TO dv / ship_max_acc().
+
+	KUNIVERSE:TIMEWARP:WARPTO(t - dt_burn / 2).
+
+	WAIT 1.
+
+	UNTIL KUNIVERSE:TIMEWARP:RATE = 1 {
+		WAIT 0.1.
+		CLEARSCREEN.
+		PRINT "INC     " + SHIP:OBT:INCLINATION.
+		PRINT "AOP     " + SHIP:OBT:ARGUMENTOFPERIAPSIS.
+		PRINT "AOP +TA " + a.
+		
+	}
+
+	LOCK THROTTLE TO 1.
+
+
+	UNTIL SHIP:OBT:INCLINATION < 0.1 {
+		WAIT 0.1.
+		CLEARSCREEN.
+		PRINT "AOP +TA " + a.
+		PRINT "INC     " + SHIP:OBT:INCLINATION.
+		PRINT "dv      " + dv.
+		PRINT "dt_burn " + dt_burn.
+	}
+
+	LOCK THROTTLE TO 0.
+}
+FUNCTION deorbit_equator {
+	DECLARE PARAMETER geo.
+	
+	LOCK a TO geo:POSITION - SHIP:BODY:POSITION.
+	LOCK r TO -SHIP:BODY:POSITION.
+	
+	LOCK d TO VODT(VCRS(r, a), V(0,0,1)).
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,0 +1,22 @@
+
+@LAZYGLOBAL OFF.
+
+CLEARSCREEN.
+
+RUNONCEPATH("libmaneuver.kos").
+RUNONCEPATH("libplane.kos").
+RUNONCEPATH("libvessel.kos").
+
+//spaceplane_launch().
+
+//circularize_apo().
+
+circularize(70000).
+
+
+
+
+
+
+
+
