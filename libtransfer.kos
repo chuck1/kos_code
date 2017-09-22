@@ -1,0 +1,31 @@
+
+FUNCTION transfer {
+	DECLARE PARAMETER o.
+	
+	match_inclination(o).
+
+	
+}
+
+
+x = a0 cos(t0) + c0
+y = b0 sin(t0)
+
+xp = a1 cos(t1) + c1
+yp = b1 sin(t1)
+
+x = xp cos(o) - yp sin(o)
+y = xp sin(o) + yp cos(o)
+
+a0 cos(t0) + c0 = (a1 cos(t1) + c1) cos(o) - b1 sin(t1) sin(o)
+b0 sin(t0)      = (a1 cos(t1) + c1) sin(o) + b1 sin(t1) cos(o)
+
+b1^2 + c1^2 = a1^2
+
+tan(u0) = y  / x  = b0 sin(t0) / (a0 cos(t0) + c0)
+
+tan(u1) = yp / xp = b1 sin(t1) / (a1 cos(t1) + c1)
+
+
+
+

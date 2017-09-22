@@ -3,6 +3,7 @@
 RUNONCEPATH("libmaneuver.kos").
 RUNONCEPATH("libcalc.kos").
 
+
 FUNCTION launch {
 	DECLARE PARAMETER alt0, alt1, pitch0.
 
@@ -95,4 +96,13 @@ FUNCTION launch {
 	
 	circularize_apo().
 }	
+FUNCTION launch_match_inclination {
+	lan
+	SET l TO o:LONGITUDEOFASCENDINGNODE - (BODY:ROTATION + SHIP:GEOPOSITION:LNG).
+}
+
+
+
+
+
 	
